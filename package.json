@@ -1,0 +1,30 @@
+{
+  "name": "general-express-server",
+  "version": "1.0.0",
+  "description": "An express server boilerplate configured for easy use in future projects.",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TimTinkers/General-Express-Server.git"
+  },
+  "keywords": [
+    "nodejs",
+    "express",
+    "server"
+  ],
+  "author": "Tim Clancy",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/TimTinkers/General-Express-Server/issues"
+  },
+  "homepage": "https://github.com/TimTinkers/General-Express-Server#readme",
+  "standard": {
+    "globals": [
+      "$",
+      "THREE"
+    ]
+  }
+}
