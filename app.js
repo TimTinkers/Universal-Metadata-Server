@@ -6,6 +6,11 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const AWS = require('aws-sdk');
 const uuidv1 = require('uuid/v1');
+const jwt = require('jsonwebtoken');
+const jwksClient = require('jwks-rsa');
+const storageClient = jwksClient({
+	jwksUri: 'https://arbitrary-json-storage.auth0.com/.well-known/jwks.json'
+});
 
 // Configuring AWS account.
 AWS.config.update({ region: 'us-east-2' });
@@ -39,32 +44,60 @@ app.get('/', function (req, res) {
 	res.render('dashboard');
 });
 
+app.get('/login', function (req, res) {
+	res.render('loginDashboard');
+});
+
+function getKey (header, callback) {
+	storageClient.getSigningKey(header.kid, function (error, key) {
+		if (error) {
+			console.error(error);
+			return ({ error: error.stack });
+		}
+		let signingKey = key.publicKey || key.rsaPublicKey;
+		callback(null, signingKey);
+	});
+};
+
 app.post('/store', asyncMiddleware(async (req, res, next) => {
-	let data = req.body;
-	let id = uuidv1();
-	console.log(id);
-	data.id = id;
-	data = JSON.stringify(data);
-	console.log(data);
-	try {
-		let params = {
-			TableName: 'Arbitrary-JSON-Storage',
-			Item: {
-				id: id.toString(),
-				data: data
-			}
-		};
-		docClient.put(params, function (error, data) {
+	let storageTokenBearer = req.headers.authorization;
+	let storageToken = storageTokenBearer.split(' ').pop();
+	if (storageToken === undefined || storageToken === 'undefined') {
+		res.status(401).send({ error: 'Token is unauthorized.' });
+
+	// Otherwise, verify the correctness of the access token.
+	} else {
+		jwt.verify(storageToken, getKey, function (error, decoded) {
 			if (error) {
-				console.log('Error', error);
+				res.status(401).send({ error: 'Token is unauthorized.' });
 			} else {
-				console.log('Success', data);
+				let data = req.body;
+				let id = uuidv1();
+				data.id = id;
+				data = JSON.stringify(data);
+				console.log(decoded);
+				try {
+					let params = {
+						TableName: 'Arbitrary-JSON-Storage',
+						Item: {
+							id: id.toString(),
+							data: data
+						}
+					};
+					docClient.put(params, function (error, data) {
+						if (error) {
+							console.log('Error', error);
+						} else {
+							console.log('Success', data);
+						}
+					});
+					res.send({ 'id': id });
+				}	catch (error) {
+					console.error(error);
+					res.sendStatus(500).send({ error });
+				}
 			}
 		});
-		res.send({ 'id': id });
-	}	catch (error) {
-		console.error(error);
-		res.sendStatus(500).send({ error });
 	}
 }));
 
