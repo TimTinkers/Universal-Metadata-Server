@@ -5,7 +5,6 @@ require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const AWS = require('aws-sdk');
-const uuidv1 = require('uuid/v1');
 const jwt = require('jsonwebtoken');
 const jwksClient = require('jwks-rsa');
 const storageClient = jwksClient({
@@ -72,7 +71,7 @@ app.post('/store', asyncMiddleware(async (req, res, next) => {
 				res.status(401).send({ error: 'Token is unauthorized.' });
 			} else {
 				let data = req.body;
-				let id = uuidv1();
+				let id = req.body.id;
 				data.id = id;
 				data = JSON.stringify(data);
 				console.log(decoded);
@@ -91,7 +90,44 @@ app.post('/store', asyncMiddleware(async (req, res, next) => {
 							console.log('Success', data);
 						}
 					});
-					res.send({ 'id': id });
+					res.status(200).send({ 'id': id });
+				}	catch (error) {
+					console.error(error);
+					res.status(500).send({ error: error });
+				}
+			}
+		});
+	}
+}));
+
+app.post('/update', asyncMiddleware(async (req, res, next) => {
+	let storageTokenBearer = req.headers.authorization;
+	let storageToken = storageTokenBearer.split(' ').pop();
+	if (storageToken === undefined || storageToken === 'undefined') {
+		res.status(401).send({ error: 'Token is unauthorized.' });
+
+	// Otherwise, verify the correctness of the access token.
+	} else {
+		jwt.verify(storageToken, getKey, function (error, decoded) {
+			if (error) {
+				res.status(401).send({ error: 'Token is unauthorized.' });
+			} else {
+				try {
+					let params = {
+						TableName: 'Arbitrary-JSON-Storage',
+						Item: {
+							id: (req.body.id).toString(),
+							data: JSON.stringify(req.body.data)
+						}
+					};
+					docClient.put(params, function (error, data) {
+						if (error) {
+							console.log('Error', error);
+						} else {
+							console.log('Success');
+							res.sendStatus(200);
+						}
+					});
 				}	catch (error) {
 					console.error(error);
 					res.sendStatus(500).send({ error });
@@ -101,54 +137,43 @@ app.post('/store', asyncMiddleware(async (req, res, next) => {
 	}
 }));
 
-app.post('/update', asyncMiddleware(async (req, res, next) => {
-	try {
-		let params = {
-			TableName: 'Arbitrary-JSON-Storage',
-			Item: {
-				id: (req.body.id).toString(),
-				data: JSON.stringify(req.body.data)
-			}
-		};
-		docClient.put(params, function (error, data) {
-			if (error) {
-				console.log('Error', error);
-			} else {
-				console.log('Success');
-				res.sendStatus(200);
-			}
-		});
-	}	catch (error) {
-		console.error(error);
-		res.sendStatus(500).send({ error });
-	}
-}));
-
 app.post('/delete', asyncMiddleware(async (req, res, next) => {
-	try {
-		let params = {
-			TableName: 'Arbitrary-JSON-Storage',
-			Key: {
-				id: (req.body.id).toString()
-			}
-		};
-		docClient.delete(params, function (error, data) {
+	let storageTokenBearer = req.headers.authorization;
+	let storageToken = storageTokenBearer.split(' ').pop();
+	if (storageToken === undefined || storageToken === 'undefined') {
+		res.status(401).send({ error: 'Token is unauthorized.' });
+
+	// Otherwise, verify the correctness of the access token.
+	} else {
+		jwt.verify(storageToken, getKey, function (error, decoded) {
 			if (error) {
-				console.log('Error', error);
+				res.status(401).send({ error: 'Token is unauthorized.' });
 			} else {
-				console.log('Success');
-				res.sendStatus(200);
+				try {
+					let params = {
+						TableName: 'Arbitrary-JSON-Storage',
+						Key: {
+							id: (req.body.id).toString()
+						}
+					};
+					docClient.delete(params, function (error, data) {
+						if (error) {
+							console.log('Error', error);
+						} else {
+							console.log('Success');
+							res.sendStatus(200);
+						}
+					});
+				}	catch (error) {
+					console.error(error);
+					res.sendStatus(500).send({ error });
+				}
 			}
 		});
-	}	catch (error) {
-		console.error(error);
-		res.sendStatus(500).send({ error });
 	}
 }));
 
-app.get('/retrieve/:id', asyncMiddleware(async (req, res, next) => {
-	let id = req.params.id;
-	console.log(id);
+let retrieve = async function (id) {
 	try {
 		let params = {
 			TableName: 'Arbitrary-JSON-Storage',
@@ -159,21 +184,33 @@ app.get('/retrieve/:id', asyncMiddleware(async (req, res, next) => {
 				id: id
 			}
 		};
-		docClient.get(params, function (error, data) {
-			if (error) {
-				console.log('Error', error);
+		let dynamoResponse = await docClient.get(params).promise();
+		console.log(dynamoResponse);
+		if (dynamoResponse.error) {
+			return ({ error: dynamoResponse.rror });
+		} else {
+			if (dynamoResponse.Item === undefined) {
+				return ({ error: 'Error: Invalid ID' });
 			} else {
-				if (data.Item === undefined) {
-					res.sendStatus(500).send({ error: 'Error: Invalid ID' });
-				} else {
-					console.log('Success', data);
-					res.send(JSON.parse(data.Item.data));
-				}
+				console.log(JSON.parse(dynamoResponse.Item.data));
+				return (JSON.parse(dynamoResponse.Item.data));
 			}
-		});
+		}
 	}	catch (error) {
 		console.error(error);
-		res.sendStatus(500).send({ error: error });
+		return ({ error: error });
+	}
+};
+
+app.get('/retrieve/:id', asyncMiddleware(async (req, res, next) => {
+	let id = req.params.id;
+	console.log(id);
+	let response = await retrieve(id);
+	console.log(response);
+	if (response.error) {
+		res.status(500).send(response);
+	} else {
+		res.status(200).send(response);
 	}
 }));
 
