@@ -21,8 +21,7 @@ let docClient = new AWS.DynamoDB.DocumentClient();
 
 // Middleware for enabling async routes with Express.
 const asyncMiddleware = fn => (req, res, next) => {
-	Promise.resolve(fn(req, res, next))
-  .catch(next);
+	Promise.resolve(fn(req, res, next)).catch(next);
 };
 
 // Application setup.

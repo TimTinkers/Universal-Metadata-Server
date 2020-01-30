@@ -16,7 +16,8 @@
     "import",
     "node",
     "promise",
-    "standard"
+    "standard",
+    "html"
   ],
 
   "globals": {
