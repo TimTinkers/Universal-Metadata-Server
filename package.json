@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "npx eslint ./",
-    "validate": "npm-run-all --parallel test lint",
+    "validate": "npm-run-all --parallel lint",
     "precommit": "npm run validate",
     "prepush": "npm run validate"
   },
