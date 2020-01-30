@@ -6,9 +6,13 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "npx eslint ./",
-    "validate": "npm-run-all --parallel lint",
-    "precommit": "npm run validate",
-    "prepush": "npm run validate"
+    "validate": "npm-run-all lint"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "npm run validate",
+      "pre-push": "npm run validate"
+    }
   },
   "repository": {
     "type": "git",
