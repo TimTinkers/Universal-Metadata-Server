@@ -67,9 +67,9 @@ app.post('/store', asyncMiddleware(async (req, res, next) => {
 	} else {
 		jwt.verify(storageToken, getKey, function (error, decoded) {
 			if (error) {
-				res.status(401).send({ error: 'Token is unauthorized.' })
+				res.status(401).send({ error: 'Token is unauthorized.' });
 			} else {
-				let data = req.body;
+				let data = req.body
 				let id = req.body.id;
 				data.id = id;
 				data = JSON.stringify(data);
