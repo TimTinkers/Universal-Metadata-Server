@@ -166,7 +166,7 @@ app.post('/delete', asyncMiddleware(async (req, res, next) => {
 					});
 				}	catch (error) {
 					console.error(error);
-					res.sendStatus(500).send({ error });
+					res.sendStatus(500).send({ error })
 				}
 			}
 		});
