@@ -50,6 +50,8 @@ app.get('/login', function (req, res) {
 function getKey (header, callback) {
 	storageClient.getSigningKey(header.kid, function (error, key) {
 		if (error) {
+			if (!error || error === 'undefined' || error === '') {
+			}
 			console.error(error);
 			return ({ error: error.stack });
 		}
