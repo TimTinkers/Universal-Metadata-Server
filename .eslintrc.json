@@ -23,8 +23,12 @@
   "globals": {
     "document": false,
     "navigator": false,
-    "window": false
+    "window": false,
+    "$": true,
+    "THREE": true
   },
+
+  "ignorePatterns": ["node_modules/", "static/imported-js/"],
 
   "rules": {
     "accessor-pairs": "error",
